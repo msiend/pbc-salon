@@ -25,7 +25,7 @@ test('coupon uniqueness, allocation, expiry, preserved terms and persistent data
 });
 test('HTTP lead, download, authentication, CSRF, settings, export and restart',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'salon-http-'));const dbPath=join(dir,'db.sqlite');
- const env={...process.env,PORT:'3197',DB_PATH:dbPath,ADMIN_PASSWORD:'a-test-password-12345',SESSION_SECRET:'test-session-secret-long-enough',NODE_ENV:'development'};
+ const env={...process.env,PORT:'3197',DB_PATH:dbPath,ADMIN_PASSWORD:'a-test-password-12345',SESSION_SECRET:'test-session-secret-long-enough',NODE_ENV:'development',WHATSAPP_ACCESS_TOKEN:'',WHATSAPP_PHONE_NUMBER_ID:'',PUBLIC_BASE_URL:''};
  let child;
  async function start(){child=spawn(process.execPath,['server.js'],{env,stdio:['ignore','pipe','pipe']});let output='';child.stderr.on('data',d=>output+=d);await Promise.race([new Promise(resolve=>child.stdout.on('data',d=>{if(String(d).includes('listening'))resolve();})),new Promise((_,reject)=>{child.once('exit',()=>reject(new Error(output)));setTimeout(()=>reject(new Error('Startup timed out: '+output)),5000).unref();})]);}
  let cookie='';
@@ -47,7 +47,7 @@ test('HTTP lead, download, authentication, CSRF, settings, export and restart',a
  assert.equal((await request('/claim',{...input(),csrf:token,consent:'yes'})).res.status,409);
  const login=await request('/admin/login');assert.equal((await request('/admin/login',{csrf:csrf(login.text),password:'wrong'})).res.status,401);
  assert.equal((await request('/admin/login',{csrf:csrf(login.text),password:env.ADMIN_PASSWORD})).res.status,302);
- const admin=await request('/admin');assert.equal(admin.res.status,200);assert.match(admin.text,/9000000000/);
+ const admin=await request('/admin');assert.equal(admin.res.status,200);assert.match(admin.text,/9000000000/);assert.match(admin.text,/pending/);
  token=csrf(admin.text);
  assert.equal((await request('/admin/settings',{csrf:token,discount:'201',validity:'10'})).res.status,400);
  assert.equal((await request('/admin/settings',{csrf:token,discount:'150',validity:'7'})).res.status,302);
@@ -59,7 +59,7 @@ test('HTTP lead, download, authentication, CSRF, settings, export and restart',a
  assert.match((await request('/offers')).text,/Fresh look/);
  const csv=await request('/admin/export');assert.match(csv.text,/9000000000/);assert.match(csv.res.headers.get('content-disposition'),/attachment/);
  child.kill();await once(child,'exit');await start();
- assert.match((await request('/admin')).text,/9000000000/); // Persistent session and lead
+ const restartedAdmin=await request('/admin');assert.match(restartedAdmin.text,/9000000000/);assert.match(restartedAdmin.text,/pending/); // Persistent session, lead and message queue
  assert.match((await request(downloadPath)).text,/Up to ₹200 OFF/); // Original terms remain
  assert.equal((await request('/admin/logout',{csrf:token})).res.status,302);
  assert.equal((await request('/admin/export')).res.status,302);

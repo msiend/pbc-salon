@@ -5,9 +5,13 @@ import session from 'express-session';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes,scryptSync,timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { createWhatsAppWorker } from './whatsapp.js';
 import { openDatabase,claim } from './db.js';
 const app=express(),db=openDatabase(process.env.DB_PATH || './data/salon.sqlite');
+const whatsapp=createWhatsAppWorker(db);
+const whatsappTimer=setInterval(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')),5000);
+whatsappTimer.unref();
+setImmediate(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')));
 const production=process.env.NODE_ENV==='production';
 if(production && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length<32 || !process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length<12)) throw new Error('Production requires SESSION_SECRET (at least 32 characters) and ADMIN_PASSWORD (at least 12 characters).');
 if(process.env.TRUST_PROXY) app.set('trust proxy',Number(process.env.TRUST_PROXY));
@@ -41,7 +45,7 @@ app.get('/claim',(req,res)=>form(req,res));
 app.post('/claim',limit,(req,res)=>{
  const name=String(req.body.name||'').trim(),mobile=String(req.body.mobile||'').replace(/[\s+-]/g,'').replace(/^91(?=\d{10}$)/,''),service=String(req.body.service||''),timeframe=String(req.body.timeframe||'');
  if(name.length<2||name.length>80||! /^[6-9]\d{9}$/.test(mobile)||!['5','7','10'].includes(timeframe)||!services().some(x=>x.name===service)||req.body.consent!=='yes') return form(req,res,'Please enter your name, a valid Indian mobile number, service, visit timeframe and consent.',400);
- try{const token=claim(db,{name,mobile,service,timeframe,offer:Number(req.body.offer)});req.session.newCoupon=token;req.session.lastCoupon=token;res.redirect('/claim/success');}catch(e){form(req,res,e.message,409);}
+ try{const token=claim(db,{name,mobile,service,timeframe,offer:Number(req.body.offer),whatsapp:true});req.session.newCoupon=token;req.session.lastCoupon=token;res.redirect('/claim/success');setImmediate(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')));}catch(e){form(req,res,e.message,409);}
 });
 const xml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 app.get('/claim/success',(req,res)=>{
@@ -73,9 +77,13 @@ app.post('/admin/login',limit,(req,res)=>{
 app.post('/admin/logout',guard,(req,res)=>req.session.destroy(()=>res.redirect('/')));
 app.get('/admin',guard,(req,res)=>{
  const q=String(req.query.q||'').slice(0,100),pattern='%'+q+'%';
- res.render('admin',{q,leads:db.prepare('SELECT * FROM leads WHERE name LIKE ? OR mobile LIKE ? OR code LIKE ? ORDER BY created_at DESC').all(pattern,pattern,pattern),services:services(),offers:db.prepare('SELECT * FROM offers').all(),settings:db.prepare('SELECT * FROM settings').get(),stats:stats(),error:req.query.error||''});
+ res.render('admin',{q,leads:db.prepare('SELECT l.*,w.status AS whatsapp_status,w.error AS whatsapp_error FROM leads l LEFT JOIN whatsapp_messages w ON w.lead_id=l.id WHERE l.name LIKE ? OR l.mobile LIKE ? OR l.code LIKE ? ORDER BY l.created_at DESC').all(pattern,pattern,pattern),services:services(),offers:db.prepare('SELECT * FROM offers').all(),settings:db.prepare('SELECT * FROM settings').get(),stats:stats(),whatsappConfigured:whatsapp.configured,error:req.query.error||''});
 });
 app.post('/admin/lead/:id',guard,(req,res)=>{db.prepare('UPDATE leads SET used=? WHERE id=?').run(req.body.used==='1'?1:0,Number(req.params.id));res.redirect('/admin');});
+app.post('/admin/whatsapp/:id/retry',guard,(req,res)=>{
+ db.prepare("UPDATE whatsapp_messages SET status='pending',attempts=0,next_attempt=0,error='' WHERE lead_id=? AND status='failed' AND lead_id IN (SELECT id FROM leads WHERE expires_at>?)").run(Number(req.params.id),Date.now());
+ res.redirect('/admin');setImmediate(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')));
+});
 app.post('/admin/settings',guard,(req,res)=>{const d=Number(req.body.discount),v=Number(req.body.validity);if(!Number.isInteger(d)||d<1||d>200||!Number.isInteger(v)||v<1||v>90)return res.status(400).send('Discount must be ₹1–₹200 and validity 1–90 days.');db.prepare('UPDATE settings SET discount=?,validity=? WHERE id=1').run(d,v);res.redirect('/admin');});
 app.post('/admin/service/:id',guard,(req,res)=>{const p=req.body.price===''?null:Number(req.body.price);if(p!==null&&(!Number.isInteger(p)||p<0||p>100000))return res.sendStatus(400);db.prepare('UPDATE services SET price=? WHERE id=?').run(p,Number(req.params.id));res.redirect('/admin');});
 app.post('/admin/offer',guard,(req,res)=>{const title=String(req.body.title||'').trim(),description=String(req.body.description||'').trim(),active=req.body.active==='1'?1:0;if(!title||title.length>100||!description||description.length>600)return res.sendStatus(400);if(req.body.id)db.prepare('UPDATE offers SET title=?,description=?,active=? WHERE id=?').run(title,description,active,Number(req.body.id));else db.prepare('INSERT INTO offers(title,description,active) VALUES(?,?,?)').run(title,description,active);res.redirect('/admin');});

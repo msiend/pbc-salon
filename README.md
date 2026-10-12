@@ -44,3 +44,28 @@ Run a **single persistent Node server** with an attached writable volume for `DB
 For deployment, set `NODE_ENV=production`, strong credentials and HTTPS at a reverse proxy; set `TRUST_PROXY` to the exact trusted hop count when necessary so secure cookies work. Configure TLS on the proxy. Never expose an untrusted proxy directly. Enable restarts via your host's process manager. Keep secrets in hosting settings; restrict DB file access. Static assets have one-day caching in production; personalised coupons/admin are `no-store`. Application responses are small HTML and CSS; no build step is needed.
 
 Rate limits are in-process and appropriate to one server; multi-server deployments need shared limits and a different database strategy. Admin authentication uses a configured single-owner password, constant-time comparison, secure production cookies, session regeneration, CSRF tokens and rate limiting. For a larger team, use individual accounts and an audit trail as a separate enhancement. Contact the salon for data deletion; the owner should set and follow an appropriate retention policy.
+
+## Automatic WhatsApp coupon confirmations
+
+The lead form now explicitly asks for consent to a WhatsApp confirmation. A successful claim records a message in SQLite **in the same transaction as the coupon**. A background worker sends it using Meta's official WhatsApp Cloud API without delaying the form response. Previously collected leads are not backfilled or contacted automatically. No WhatsApp marketing campaigns are added.
+
+Configure these together in secure hosting environment settings or the ignored `.env` file:
+
+- `WHATSAPP_ACCESS_TOKEN`: a Meta access token authorised for your WhatsApp Business phone (`whatsapp_business_messaging`). Keep it secret.
+- `WHATSAPP_PHONE_NUMBER_ID`: Meta's phone number **ID**, not the salon telephone number.
+- `WHATSAPP_TEMPLATE_NAME`: an approved template name, e.g. `salon_coupon_confirmation`.
+- `WHATSAPP_TEMPLATE_LANGUAGE`: exact approved language code; defaults to `en`.
+- `WHATSAPP_API_VERSION`: a supported Graph API version; defaults to `v23.0`.
+- `PUBLIC_BASE_URL`: the real HTTPS website origin, without a path, query or credentials.
+
+Create an approved template with **five positional body text parameters**, in this order: customer name, coupon code, maximum discount as a number, expiry date, complete private coupon URL. Example body:
+
+> Hello {{1}}, your Raju Riyaz Unisex Salon coupon is ready! Code: {{2}}. Get up to ₹{{3}} off eligible services. Valid until {{4}}. View and download: {{5}}. Visit Daccapatty, Nagaon or call 9126691868. Single use. Terms and conditions apply.
+
+Use the category required by Meta for this promotional coupon content (normally marketing); obtain approval rather than assuming a utility classification. This implementation expects a body-only template with no required header or button parameters. Website submissions do not open a WhatsApp conversation window, so an approved template is required for the first business-initiated message. In Meta's test environment, recipients must be added/verified as test recipients; production needs an enabled sender and the necessary account setup.
+
+Allow outbound HTTPS to `graph.facebook.com`. Restart the server after configuration. Missing configuration leaves messages pending without attempting delivery. Non-expired pending messages resume after restart. The admin lead table displays `pending`, `accepted`, `failed` or `unknown`. **Accepted means Meta returned a message ID, not that the customer received/read the message.** Delivery/read status webhooks are not implemented.
+
+Rate-limited requests retry after a minute, with at most three attempts. Confirmed rejections can be retried using the admin button after correcting configuration. Network timeouts, server errors and interrupted requests are marked unknown and are not automatically resent, since Meta may already have accepted them. Check Meta before any manual resend. Expired coupons are not sent. This avoids misleading success claims and repeated automatic messages.
+
+`npm test` covers template parameters, consent-based queuing, duplicate suppression, API rejection, timeouts, rate limits, missing configuration, interrupted requests and expiry, using mocked API responses. No live messages are sent by tests. Verify one real opted-in submission with your approved template before launching; live delivery is not verified without credentials.
