@@ -17,9 +17,9 @@ Open port 3000. `/admin` is the management panel. Admin access remains disabled 
 
 ## Branding and content
 
-The referenced chat supplied the salon name, address, telephone and an opening announcement for 16 October. The original attachments were unavailable; the site uses a typographic salon name and an abstract CSS illustration until you provide assets. It does not recreate the logo or advertise an unverified opening year. Service categories are editable starter content, with prices deliberately unset pending the actual menu.
+The referenced chat supplied the salon name, address, telephone and an opening announcement for 16 October. The original attachments were unavailable; the site uses a typographic salon name and an opening-announcement poster until you provide assets. The opening banner uses the supplied 16 October date without inventing a year. It does not recreate the logo. Service categories are editable starter content, with prices deliberately unset pending the actual menu.
 
-Place the **unaltered original logo** at `public/brand/logo.png` and an optimised exterior night photo at `public/brand/exterior-night.webp`. No image is stretched; the original logo is contained. Restart to refresh asset availability. For optional music, put a legally licensed nostalgic Indian track at `public/music/song.mp3` and set `MUSIC_TITLE` to its actual title. Music is opt-in, never autoplayed, and audio is not downloaded until playback. No copyrighted recording is bundled.
+Place the **unaltered original logo** at `public/brand/logo.png`. Add the original photos under `public/brand/` with filenames `exterior-night`, `exterior-day`, and `interior`; each accepts `.webp`, `.png`, `.jpg` or `.jpeg`. The logo accepts these formats too. The night photo appears in the main hero; day and interior images appear separately in a gallery only when available. No image is stretched; the original logo is contained. Restart to refresh asset availability. For optional music, put a legally licensed nostalgic Indian track at `public/music/song.mp3` and set `MUSIC_TITLE` to its actual title. Music is opt-in, never autoplayed, and audio is not downloaded until playback. No copyrighted recording is bundled.
 
 ## Coupons and offers
 

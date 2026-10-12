@@ -5,6 +5,7 @@ import session from 'express-session';
 import { rateLimit } from 'express-rate-limit';
 import { randomBytes,scryptSync,timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { brandAssets } from './branding.js';
 import { createWhatsAppWorker } from './whatsapp.js';
 import { openDatabase,claim } from './db.js';
 const app=express(),db=openDatabase(process.env.DB_PATH || './data/salon.sqlite');
@@ -29,7 +30,7 @@ app.use(session({store:new SQLiteStore(),secret:process.env.SESSION_SECRET||rand
 const limit=rateLimit({windowMs:15*60*1000,limit:20,standardHeaders:'draft-8',legacyHeaders:false});
 app.use((req,res,next)=>{
  req.session.csrf ||=randomBytes(24).toString('hex');
- res.locals={...res.locals,path:req.path,csrf:req.session.csrf,pixel:/^\d{5,25}$/.test(process.env.META_PIXEL_ID||'')?process.env.META_PIXEL_ID:'',logo:existsSync('public/brand/logo.png'),hero:existsSync('public/brand/exterior-night.webp'),music:existsSync('public/music/song.mp3'),song:process.env.MUSIC_TITLE||'A little nostalgia',date:n=>new Date(n).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}),admin:!!req.session.admin};
+ res.locals={...res.locals,path:req.path,csrf:req.session.csrf,pixel:/^\d{5,25}$/.test(process.env.META_PIXEL_ID||'')?process.env.META_PIXEL_ID:'',...brandAssets(),music:existsSync('public/music/song.mp3'),song:process.env.MUSIC_TITLE||'A little nostalgia',date:n=>new Date(n).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'}),admin:!!req.session.admin};
  if(req.path.startsWith('/admin')||req.path.startsWith('/coupon/')||req.path.startsWith('/claim')) res.set('Cache-Control','no-store');
  if(req.path.startsWith('/admin')||req.path.startsWith('/coupon/')||req.path==='/claim/success')res.set('X-Robots-Tag','noindex, nofollow');
  if(req.method==='POST'&&req.body.csrf!==req.session.csrf) return res.status(403).send('Your session expired. Refresh the page and try again.');
@@ -38,7 +39,7 @@ app.use((req,res,next)=>{
 const services=()=>db.prepare('SELECT * FROM services').all();
 const offers=()=>db.prepare('SELECT * FROM offers WHERE active=1').all();
 const stats=()=>({recent:db.prepare('SELECT count(*) n FROM leads WHERE created_at>=?').get(Date.now()-86400000).n,total:db.prepare('SELECT count(*) n FROM leads').get().n});
-app.get('/',(req,res)=>res.render('home',{services:services()}));
+app.get('/',(req,res)=>res.render('home',{services:services(),settings:db.prepare('SELECT * FROM settings').get()}));
 app.get('/offers',(req,res)=>res.render('offers',{offers:offers()}));
 function form(req,res,error='',status=200){res.status(status).render('claim',{services:services(),offers:offers(),settings:db.prepare('SELECT * FROM settings').get(),stats:stats(),selected:Number(req.query.offer||req.body?.offer||1),error});}
 app.get('/claim',(req,res)=>form(req,res));
@@ -62,11 +63,11 @@ app.get('/coupon/:token/download',(req,res)=>{
  const l=db.prepare('SELECT * FROM leads WHERE token=?').get(req.params.token);if(!l)return res.sendStatus(404);
  const expiry=res.locals.date(l.expires_at);
  const status=l.used?'ALREADY REDEEMED':l.expires_at<Date.now()?'EXPIRED':'';
- const logo=res.locals.logo?`<image href="data:image/png;base64,${readLogo()}" x="440" y="25" width="120" height="80"/>`:'';
+ const logo=res.locals.logo?`<image href="${readLogo(res.locals.logo)}" x="440" y="25" width="120" height="80"/>`:'';
  res.type('image/svg+xml').attachment('raju-riyaz-coupon.svg').send(`<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="640" viewBox="0 0 1000 640"><defs><linearGradient id="gold"><stop stop-color="#f7e8bb"/><stop offset="1" stop-color="#cfaa5b"/></linearGradient></defs><rect width="1000" height="640" rx="30" fill="url(#gold)"/><rect x="22" y="22" width="956" height="596" rx="22" fill="none" stroke="#826223"/>${logo}<g text-anchor="middle" fill="#302617" font-family="Georgia,serif"><text x="500" y="140" font-size="35">RAJU RIYAZ UNISEX SALON</text><text x="500" y="205" font-size="22">A LITTLE LUXURY, JUST FOR YOU</text><text x="500" y="295" font-size="70">Up to ₹${l.discount} OFF</text><text x="500" y="355" font-size="27">${xml(l.name)}</text><text x="500" y="410" font-size="34">${xml(l.code)}</text><text x="500" y="455" font-size="21">Expires ${xml(expiry)} · Single use · Present at the salon</text><text x="500" y="485" font-size="18">${status}</text><text x="500" y="510" font-size="19">Daccapatty, Nagaon · 9126691868</text><text x="500" y="555" font-size="17">Eligible services only. Discount cannot exceed the bill. No cash value.</text><text x="500" y="585" font-size="17">Cannot be combined with other offers. Terms and conditions apply.</text></g></svg>`);
 });
 import {readFileSync} from 'node:fs';
-const readLogo=()=>readFileSync('public/brand/logo.png').toString('base64');
+const readLogo=path=>{const extension=path.split('.').pop();const mime=extension==='jpg'||extension==='jpeg'?'image/jpeg':'image/'+extension;return 'data:'+mime+';base64,'+readFileSync('public'+path).toString('base64');};
 const guard=(req,res,next)=>req.session.admin?next():res.redirect('/admin/login');
 app.get('/admin/login',(req,res)=>res.render('login',{error:'',configured:!!process.env.ADMIN_PASSWORD}));
 app.post('/admin/login',limit,(req,res)=>{
