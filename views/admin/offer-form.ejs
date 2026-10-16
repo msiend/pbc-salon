@@ -1,0 +1,8 @@
+<form method="post" action="/admin/offer" class="admin-offer-form" data-admin-save>
+  <input type="hidden" name="csrf" value="<%= csrf %>">
+  <input type="hidden" name="id" value="<%= offer.id %>">
+  <label>Offer title<input name="title" value="<%= offer.title %>" maxlength="100" placeholder="Give your offer a name" required></label>
+  <label>Description<textarea name="description" maxlength="600" rows="4" placeholder="What should customers know about this offer?" required><%= offer.description %></textarea></label>
+  <label class="admin-toggle"><input type="checkbox" name="active" value="1" <%= offer.active?'checked':'' %>><span><strong>Show on website</strong><small>Customers can claim this offer while active.</small></span></label>
+  <button class="button <%= offer.id?'outline':'' %>" type="submit"><%= offer.id?'Save changes':'Create offer' %></button>
+</form>

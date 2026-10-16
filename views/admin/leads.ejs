@@ -1,0 +1,32 @@
+<section class="admin-card leads-card">
+  <div class="card-heading"><div><h2><%= overview?'Recent claims':'Customer directory' %></h2><p><%= overview?'Your five most recent coupon claims.':leads.length+' '+(leads.length===1?'customer matches':'customers match')+' your selection.' %></p></div><% if(overview){ %><a href="/admin?section=leads" class="admin-text-link">View all leads <%- include('icon',{name:'arrow'}) %></a><% } %></div>
+  <% if(!overview){ %>
+    <form class="admin-filter" method="get" action="/admin" role="search">
+      <input type="hidden" name="section" value="leads">
+      <label class="search-field"><span class="sr-only">Search leads by name, mobile or coupon</span><%- include('icon',{name:'search'}) %><input name="q" value="<%= q %>" maxlength="100" placeholder="Search name, mobile or coupon…"></label>
+      <label class="status-filter"><span class="sr-only">Coupon status</span><select name="status"><% [['all','All coupon statuses'],['available','Available'],['used','Used'],['expired','Expired']].forEach(([key,label])=>{ %><option value="<%= key %>" <%= status===key?'selected':'' %>><%= label %><%= key==='all'?'':' ('+counts[key]+')' %></option><% }); %></select></label>
+      <button class="button" type="submit">Apply filters</button><% if(q||status!=='all'){ %><a class="admin-text-link" href="/admin?section=leads">Clear</a><% } %>
+    </form>
+  <% } %>
+  <% if(!whatsappConfigured){ %><div class="message-note"><%- include('icon',{name:'message'}) %><span>WhatsApp setup is pending. Confirmations are saved in the queue.</span><a href="/admin?section=settings">Details</a></div><% } %>
+  <% if(leads.length){ %>
+  <div class="admin-table-wrap" role="region" aria-label="Customer lead records" tabindex="0">
+    <table class="admin-table"><caption class="sr-only">Customer details, coupon status and WhatsApp confirmation status</caption><thead><tr><th scope="col">Customer</th><th scope="col">Service & visit</th><th scope="col">Coupon</th><th scope="col">Status</th><th scope="col">WhatsApp</th><th scope="col">Claimed (IST)</th><th scope="col">Action</th></tr></thead><tbody>
+    <% leads.forEach(l=>{ const couponStatus=l.used?'used':l.expires_at<=now?'expired':'available';const messageStatus=l.whatsapp_status||'not requested';const messageNames={pending:'Queued',sending:'Sending',accepted:'Accepted',failed:'Failed',unknown:'Unknown',skipped:'Skipped'}; %>
+      <tr>
+        <td class="customer-cell" data-label="Customer"><div class="customer-identity"><span class="customer-avatar" aria-hidden="true"><%= l.name.trim().charAt(0).toUpperCase() %></span><div><strong><%= l.name %></strong><a href="tel:+91<%= l.mobile %>"><%= l.mobile %></a></div></div></td>
+        <td data-label="Service & visit"><strong><%= l.service %></strong><small><%= l.preferred_visit_date?visitDate(l.preferred_visit_date):'Within '+l.timeframe+' days (legacy)' %></small></td>
+        <td data-label="Coupon"><code><%= l.code %></code><small><strong>₹<%= l.discount %></strong> <%= l.award_kind==='spin'?'off':'maximum (legacy)' %></small><small>Expires <%= date(l.expires_at) %></small></td>
+        <td data-label="Status"><span class="admin-badge <%= couponStatus==='available'?'green':couponStatus==='used'?'neutral':'amber' %>"><%= couponStatus[0].toUpperCase()+couponStatus.slice(1) %></span></td>
+        <td data-label="WhatsApp"><span class="admin-badge <%= messageStatus==='accepted'?'green':['failed','unknown'].includes(messageStatus)?'red':messageStatus==='pending'?'amber':'neutral' %>" title="<%= messageStatus %>"><%= messageNames[messageStatus]||messageStatus %></span><% if(l.whatsapp_error){ %><details class="message-details"><summary>Message details</summary><p><%= l.whatsapp_error %></p></details><% } %><% if(messageStatus==='failed' && l.expires_at>now){ %><form method="post" action="/admin/whatsapp/<%= l.id %>/retry" data-admin-save><%- include('return-fields') %><button class="admin-text-link retry-button" type="submit" aria-label="Retry WhatsApp for <%= l.name %>">Retry message</button></form><% } %></td>
+        <td data-label="Claimed (IST)"><small class="claim-timestamp"><%= timestamp(l.created_at) %></small></td>
+        <td class="lead-action" data-label="Action"><form method="post" action="/admin/lead/<%= l.id %>" data-admin-save><%- include('return-fields') %><input type="hidden" name="used" value="<%= l.used?'0':'1' %>"><button class="button outline small" type="submit" aria-label="Mark <%= l.name %>'s coupon <%= l.used?'unused':'used' %>"><%= l.used?'Mark unused':'Mark used' %></button></form></td>
+      </tr>
+    <% }); %>
+    </tbody></table>
+  </div>
+  <% }else{ %>
+    <div class="admin-empty"><span class="empty-icon"><%- include('icon',{name:counts.total?'search':'leads'}) %></span><h3><%= counts.total?'No matching customers':'Your first claim starts here' %></h3><p><%= counts.total?'Try another name, mobile number or coupon status.':'Share your offer page. Customer details and coupon activity will appear here as claims come in.' %></p><a class="button outline" href="<%= counts.total?'/admin?section=leads':'/links' %>"><%= counts.total?'Clear filters':'Open your link page' %></a></div>
+  <% } %>
+  <div class="table-footer"><span><%= overview?'Showing '+leads.length+' of '+counts.total+' customers':'Showing '+leads.length+' matching customers' %></span><span>Accepted messages are not confirmed deliveries.</span></div>
+</section>

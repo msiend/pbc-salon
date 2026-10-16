@@ -27,7 +27,7 @@ The services from the supplied poster are Hair Styling, Trendy Haircuts, Skin Ca
 
 The inline images in the chat were visible for reference, but their original files were not exposed to the execution workspace. A typographic brand fallback is shown until the actual image is installed; it is not a recreation of the original logo.
 
-In `/admin`, use **Salon logo → Upload logo** to upload the original PNG, JPG or WebP directly (maximum 5 MB / 16 megapixels). It requires admin authentication and CSRF protection. Original image bytes are retained in SQLite. A display copy removes white outer margins and preserves aspect ratio. The logo appears in the header, footer, Link Page, coupon page and PNG downloads immediately. Uploaded originals are not publicly served.
+In `/admin`, use **Settings → Salon logo → Upload logo** to upload the original PNG, JPG or WebP directly (maximum 5 MB / 16 megapixels). It requires admin authentication and CSRF protection. Original image bytes are retained in SQLite. A display copy removes white outer margins and preserves aspect ratio. The logo appears in the header, footer, Link Page, coupon page and PNG downloads immediately. Uploaded originals are not publicly served.
 
 Alternatively, place the original at `public/brand/logo.png` (`webp`, `jpg` and `jpeg` are also accepted). An uploaded logo takes precedence. Optional original salon photos go in `public/brand/` as `exterior-night`, `exterior-day`, and `interior`, with those same extensions. Photo sections appear only when files are available. No stock photos are presented as this salon.
 
@@ -45,6 +45,14 @@ The Link Page highlights welcome promotions up to ₹200 as requested, while pro
 Admin records include the preferred visit date, actual award, claim timestamp (displayed in IST), expiry and WhatsApp request status. CSV export includes UTC ISO timestamps and the preferred visit date. Existing search, redemption, offer management and service-price controls remain available. Claiming a coupon does not confirm an appointment.
 
 Database schema upgrades are additive and idempotent; the database is never reset. `npm test` covers new and legacy data, invalid dates, award bounds, tampering, duplicate claims, cap, PNG output, admin access, logo upload, exports, restart persistence and WhatsApp queue behavior. Test servers explicitly disable live WhatsApp sending.
+
+## Admin workspace
+
+`/admin` opens a separate branded workspace with an overview, customer leads, services, offers, and settings. The overview shows actual claim totals, available and redeemed coupons, applications in the last 24 hours, remaining allocation, and requested visits today. Preferred visit dates are requests, not confirmed appointments.
+
+Use **Customer leads** to search by name, mobile or coupon code and filter available, used or expired coupons. Marking a coupon used or unused keeps your current search and filters. Success messages confirm saved changes. CSV export always includes all leads, regardless of the current filters. On phones, lead rows become readable customer cards.
+
+Service prices, offer visibility, coupon validity and the salon logo each have focused editing screens. Existing authentication, CSRF protection, coupon records and the WhatsApp sender remain in place. The admin interface does not initialize advertising tracking. Navigation, search and editing forms work without JavaScript; logo uploading still requires JavaScript. Admin styles and scripts are loaded only on admin pages.
 
 ## Meta Pixel
 
@@ -77,7 +85,7 @@ Create an approved template with **five positional body text parameters**, in th
 
 Use the category required by Meta for this promotional coupon content (normally marketing); obtain approval rather than assuming a utility classification. This implementation expects a body-only template with no required header or button parameters. Website submissions do not open a WhatsApp conversation window, so an approved template is required for the first business-initiated message. In Meta's test environment, recipients must be added/verified as test recipients; production needs an enabled sender and the necessary account setup.
 
-Allow outbound HTTPS to `graph.facebook.com`. Restart the server after configuration. Missing configuration leaves messages pending without attempting delivery. Non-expired pending messages resume after restart. The admin lead table displays `pending`, `accepted`, `failed` or `unknown`. **Accepted means Meta returned a message ID, not that the customer received/read the message.** Delivery/read status webhooks are not implemented.
+Allow outbound HTTPS to `graph.facebook.com`. Restart the server after configuration. Missing configuration leaves messages pending without attempting delivery. Non-expired pending messages resume after restart. The admin lead table displays Queued (`pending`), Sending, Accepted, Failed or Unknown. **Accepted means Meta returned a message ID, not that the customer received/read the message.** Delivery/read status webhooks are not implemented.
 
 Rate-limited requests retry after a minute, with at most three attempts. Confirmed rejections can be retried using the admin button after correcting configuration. Network timeouts, server errors and interrupted requests are marked unknown and are not automatically resent, since Meta may already have accepted them. Check Meta before any manual resend. Expired coupons are not sent. This avoids misleading success claims and repeated automatic messages.
 

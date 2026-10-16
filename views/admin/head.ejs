@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#151515">
+  <title><%= title %> · Raju Reyaz Admin</title>
+  <link rel="preload" href="/fonts/nunito-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/admin.css">
+  <script src="/app.js" defer></script>
+  <script src="/admin.js" defer></script>
+</head>
+<body class="admin-app <%= login ? 'admin-auth' : '' %>">
+<a class="admin-skip" href="#admin-main">Skip to main content</a>

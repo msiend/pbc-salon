@@ -1,1 +1,20 @@
-<%- include('header') %><section class="section login-page"><div class="form-card"><div class="eyebrow">SALON MANAGEMENT</div><h1>Welcome <em>back.</em></h1><% if(!configured){ %><p class="error">Admin access is disabled until ADMIN_PASSWORD is configured on the server.</p><% } %><% if(error){ %><p class="error" role="alert"><%= error %></p><% } %><form method="post"><input type="hidden" name="csrf" value="<%= csrf %>"><label>Admin password<input type="password" name="password" required autocomplete="current-password" maxlength="200"></label><button class="button wide">Sign in →</button></form></div></section><%- include('footer') %>
+<%- include('admin/head',{title:'Sign in',login:true}) %>
+<main class="admin-login" id="admin-main">
+  <a class="brand" href="/" aria-label="Raju Reyaz home"><%- include('brand') %></a>
+  <section class="admin-login-card">
+    <span class="login-lock"><%- include('admin/icon',{name:'lock'}) %></span>
+    <span class="admin-eyebrow">YOUR SALON WORKSPACE</span>
+    <h1>Welcome back.</h1>
+    <p>Sign in to manage your customers, offers and salon.</p>
+    <% if(!configured){ %><div class="admin-notice" role="status">Admin access is disabled until ADMIN_PASSWORD is configured on the server.</div><% } %>
+    <% if(error){ %><p class="error" role="alert"><%= error %></p><% } %>
+    <form method="post" action="/admin/login" data-admin-save>
+      <input type="hidden" name="csrf" value="<%= csrf %>">
+      <label for="password">Admin password</label><div class="password-field"><input id="password" type="password" name="password" required autocomplete="current-password" maxlength="200" placeholder="Enter your password"><button type="button" data-password-toggle aria-controls="password" aria-pressed="false">Show</button></div>
+      <button class="button wide" type="submit" <%= !configured?'disabled':'' %>>Sign in <%- include('admin/icon',{name:'arrow'}) %></button>
+    </form>
+    <div class="login-security"><%- include('admin/icon',{name:'lock'}) %>Private access for salon administrators</div>
+  </section>
+  <a class="admin-text-link" href="/">← Back to website</a>
+</main>
+<%- include('admin/end') %>

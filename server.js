@@ -77,8 +77,15 @@ app.post('/admin/login',limit,(req,res)=>{
 });
 app.post('/admin/logout',guard,(req,res)=>req.session.destroy(()=>res.redirect('/')));
 app.get('/admin',guard,(req,res)=>{
- const q=String(req.query.q||'').slice(0,100),pattern='%'+q+'%';
- res.render('admin',{q,leads:db.prepare('SELECT l.*,w.status AS whatsapp_status,w.error AS whatsapp_error FROM leads l LEFT JOIN whatsapp_messages w ON w.lead_id=l.id WHERE l.name LIKE ? OR l.mobile LIKE ? OR l.code LIKE ? ORDER BY l.created_at DESC').all(pattern,pattern,pattern),services:services(),offers:db.prepare('SELECT * FROM offers').all(),settings:db.prepare('SELECT * FROM settings').get(),stats:stats(),whatsappConfigured:whatsapp.configured,error:req.query.error||''});
+ const q=String(req.query.q||'').slice(0,100),pattern='%'+q+'%',now=Date.now();
+ const section=['overview','leads','services','offers','settings'].includes(req.query.section)?req.query.section:(q?'leads':'overview');
+ const status=['available','used','expired'].includes(req.query.status)?req.query.status:'all';
+ const statusSQL={all:'1=1',available:'l.used=0 AND l.expires_at>?',used:'l.used=1',expired:'l.used=0 AND l.expires_at<=?'}[status];
+ const parameters=[pattern,pattern,pattern,...(['available','expired'].includes(status)?[now]:[])];
+ const leads=db.prepare(`SELECT l.*,w.status AS whatsapp_status,w.error AS whatsapp_error FROM leads l LEFT JOIN whatsapp_messages w ON w.lead_id=l.id WHERE (l.name LIKE ? OR l.mobile LIKE ? OR l.code LIKE ?) AND ${statusSQL} ORDER BY l.created_at DESC,l.id DESC`).all(...parameters);
+ const counts=db.prepare('SELECT count(*) total,coalesce(sum(used=1),0) used,coalesce(sum(used=0 AND expires_at>?),0) available,coalesce(sum(used=0 AND expires_at<=?),0) expired,coalesce(sum(preferred_visit_date=?),0) visitsToday FROM leads').get(now,now,indiaDate());
+ const flash=req.session.adminFlash||'';delete req.session.adminFlash;
+ res.render('admin',{q,status,section,leads:section==='overview'?leads.slice(0,5):leads,counts,services:services(),offers:db.prepare('SELECT * FROM offers').all(),settings:db.prepare('SELECT * FROM settings').get(),stats:stats(),whatsappConfigured:whatsapp.configured,flash,now});
 });
 app.post('/admin/logo',guard,express.raw({type:['image/png','image/jpeg','image/webp'],limit:'5mb'}),async(req,res)=>{
  if(!Buffer.isBuffer(req.body)||!req.body.length)return res.status(400).json({error:'Choose a PNG, JPG or WebP file.'});
@@ -87,17 +94,25 @@ app.post('/admin/logo',guard,express.raw({type:['image/png','image/jpeg','image/
    if(!['png','jpeg','webp'].includes(metadata.format))return res.status(400).json({error:'Choose a PNG, JPG or WebP image.'});
    const display=await image.rotate().trim({background:'#ffffff',threshold:8}).resize({width:1200,height:600,fit:'inside',withoutEnlargement:true}).png().toBuffer();
    db.prepare('INSERT OR REPLACE INTO assets VALUES(?,?,?,?,?)').run('logo',req.get('Content-Type'),original,display,Date.now());
+   req.session.adminFlash='Salon logo updated. Your website and new coupon downloads now use this logo.';
    res.json({ok:true});
  }catch{return res.status(400).json({error:'This image could not be opened. Use a valid image smaller than 5 MB and 16 megapixels.'});}
 });
-app.post('/admin/lead/:id',guard,(req,res)=>{db.prepare('UPDATE leads SET used=? WHERE id=?').run(req.body.used==='1'?1:0,Number(req.params.id));res.redirect('/admin');});
+function returnToLeads(req,res,message){
+ req.session.adminFlash=message;
+ const query=new URLSearchParams({section:req.body.section==='overview'?'overview':'leads'});
+ if(req.body.q)query.set('q',String(req.body.q).slice(0,100));
+ if(['available','used','expired'].includes(req.body.status))query.set('status',req.body.status);
+ res.redirect('/admin?'+query);
+}
+app.post('/admin/lead/:id',guard,(req,res)=>{const result=db.prepare('UPDATE leads SET used=? WHERE id=?').run(req.body.used==='1'?1:0,Number(req.params.id));if(!result.changes)return res.sendStatus(404);returnToLeads(req,res,req.body.used==='1'?'Coupon marked as used.':'Coupon marked as unused. Its original expiry date still applies.');});
 app.post('/admin/whatsapp/:id/retry',guard,(req,res)=>{
  db.prepare("UPDATE whatsapp_messages SET status='pending',attempts=0,next_attempt=0,error='' WHERE lead_id=? AND status='failed' AND lead_id IN (SELECT id FROM leads WHERE expires_at>?)").run(Number(req.params.id),Date.now());
- res.redirect('/admin');setImmediate(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')));
+ returnToLeads(req,res,'WhatsApp retry requested for eligible failed messages.');setImmediate(()=>whatsapp.processNext().catch(()=>console.error('WhatsApp queue processing failed')));
 });
-app.post('/admin/settings',guard,(req,res)=>{const d=200,v=Number(req.body.validity);if(!Number.isInteger(v)||v<1||v>90)return res.status(400).send('Validity must be 1–90 days. New spin awards are always ₹100–₹150.');db.prepare('UPDATE settings SET discount=?,validity=? WHERE id=1').run(d,v);res.redirect('/admin');});
-app.post('/admin/service/:id',guard,(req,res)=>{const p=req.body.price===''?null:Number(req.body.price);if(p!==null&&(!Number.isInteger(p)||p<0||p>100000))return res.sendStatus(400);db.prepare('UPDATE services SET price=? WHERE id=?').run(p,Number(req.params.id));res.redirect('/admin');});
-app.post('/admin/offer',guard,(req,res)=>{const title=String(req.body.title||'').trim(),description=String(req.body.description||'').trim(),active=req.body.active==='1'?1:0;if(!title||title.length>100||!description||description.length>600)return res.sendStatus(400);if(req.body.id)db.prepare('UPDATE offers SET title=?,description=?,active=? WHERE id=?').run(title,description,active,Number(req.body.id));else db.prepare('INSERT INTO offers(title,description,active) VALUES(?,?,?)').run(title,description,active);res.redirect('/admin');});
+app.post('/admin/settings',guard,(req,res)=>{const d=200,v=Number(req.body.validity);if(!Number.isInteger(v)||v<1||v>90)return res.status(400).send('Validity must be 1–90 days. New spin awards are always ₹100–₹150.');db.prepare('UPDATE settings SET discount=?,validity=? WHERE id=1').run(d,v);req.session.adminFlash='Coupon validity updated for future claims.';res.redirect('/admin?section=settings');});
+app.post('/admin/service/:id',guard,(req,res)=>{const p=req.body.price===''?null:Number(req.body.price);if(p!==null&&(!Number.isInteger(p)||p<0||p>100000))return res.sendStatus(400);db.prepare('UPDATE services SET price=? WHERE id=?').run(p,Number(req.params.id));req.session.adminFlash='Service price updated on your website.';res.redirect('/admin?section=services');});
+app.post('/admin/offer',guard,(req,res)=>{const title=String(req.body.title||'').trim(),description=String(req.body.description||'').trim(),active=req.body.active==='1'?1:0;if(!title||title.length>100||!description||description.length>600)return res.sendStatus(400);if(req.body.id)db.prepare('UPDATE offers SET title=?,description=?,active=? WHERE id=?').run(title,description,active,Number(req.body.id));else db.prepare('INSERT INTO offers(title,description,active) VALUES(?,?,?)').run(title,description,active);req.session.adminFlash=req.body.id?'Offer updated.':'New offer created.';res.redirect('/admin?section=offers');});
 app.get('/admin/export',guard,(req,res)=>{
  const rows=db.prepare('SELECT name,mobile,service,preferred_visit_date,code,discount,created_at,expires_at,used FROM leads ORDER BY created_at DESC').all();
  const cell=v=>'"'+String(v).replace(/^[=+@\-\t\r]/,"'$&").replaceAll('"','""')+'"';
