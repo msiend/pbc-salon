@@ -48,7 +48,7 @@ test('HTTP claim, PNG, social links, auth, CSRF, logo upload, export and restart
  const formInput=()=>({...input(),preferred_visit_date:indiaDate(),consent:'yes'});
  try{
  await start();for(const path of ['/','/links','/offers','/claim','/privacy','/admin/login'])assert.equal((await request(path)).res.status,200,path);
- const links=(await request('/links')).text;assert.match(links,/https:\/\/maps.app.goo.gl\/PR8L21y1T2sjEwi59/);assert.match(links,/https:\/\/www.instagram.com\/raju_reyaz.nagaon\//);assert.match(links,/61594204566462/);
+ const links=(await request('/links')).text;assert.match(links,/https:\/\/maps.app.goo.gl\/gXdakHQ4XLjzyviQ7/);assert.match(links,/https:\/\/www.instagram.com\/raju_reyaz.nagaon\//);assert.match(links,/61594204566462/);
  assert.equal((await request('/admin')).res.status,302);
  const page=await request('/claim');let token=csrf(page.text);assert.match(page.text,/0 people have/);assert.match(page.text,/Hydra Facial/);
  assert.equal((await request('/claim',{...formInput(),csrf:'bad'})).res.status,403);
