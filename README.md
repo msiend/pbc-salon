@@ -1,4 +1,4 @@
-# Raju Riyaz Unisex Salon
+# Raju Reyaz Unisex Salon
 
 A lightweight, server-rendered Express/EJS site for the salon in Daccapatty, Nagaon (9126691868). Node 24+ and SQLite, with no frontend build or external font requests.
 
@@ -15,23 +15,36 @@ Open port 3000. `/admin` is the management panel. Admin access remains disabled 
 
 `npm test` runs transaction, coupon and HTTP workflow tests using temporary databases. `npm run dev` runs Node watch mode; use `node --env-file=.env --watch server.js` to load local settings.
 
-## Branding and content
+## Design, links and services
 
-The referenced chat supplied the salon name, address, telephone and an opening announcement for 16 October. The original attachments were unavailable; the site uses a typographic salon name and an opening-announcement poster until you provide assets. The opening banner uses the supplied 16 October date without inventing a year. It does not recreate the logo. Service categories are editable starter content, with prices deliberately unset pending the actual menu.
+The website uses locally hosted Nunito (rounded variable font, SIL Open Font License included), with the supplied palette: black `#151515`, salon red `#b91c29`, champagne `#e8c98e`, and warm ivory `#f8f5ef`. There is no frontend build or external font request.
 
-Place the **unaltered original logo** at `public/brand/logo.png`. Add the original photos under `public/brand/` with filenames `exterior-night`, `exterior-day`, and `interior`; each accepts `.webp`, `.png`, `.jpg` or `.jpeg`. The logo accepts these formats too. The night photo appears in the main hero; day and interior images appear separately in a gallery only when available. The supplied wide logo is displayed through a CSS frame that hides its large outer white margins without altering the original file. The frame is sized for the 3000 × 1431 artwork shown in chat; other logo layouts may need the frame dimensions adjusted. No image is stretched. Restart to refresh asset availability. For optional music, put a legally licensed nostalgic Indian track at `public/music/song.mp3` and set `MUSIC_TITLE` to its actual title. Music is opt-in, never autoplayed, and audio is not downloaded until playback. No copyrighted recording is bundled.
+`/links` is the mobile Link Page (`/link` redirects there). It includes the exact Google Maps, Instagram and Facebook URLs supplied by the owner, plus Claim Offer and telephone links. Standard HTTPS Maps links hand off to the Google Maps app when the device supports it and otherwise open its website.
 
-## Coupons and offers
+The services from the supplied poster are Hair Styling, Trendy Haircuts, Skin Care & Facials, Waxing & Grooming, Makeup Services, Hair Spa & Treatments, Manicure & Pedicure and Hydra Facial. Prices remain unset until the salon enters them. The address is 1st Floor, Haque Market, Daccapatty, Nagaon, Assam. Previously edited service prices are preserved during the one-time service migration.
 
-- Global allocation: 100 successful claims across all offers, enforced by SQLite `BEGIN IMMEDIATE`.
-- Unique coupon codes and private 192-bit tokens. One welcome coupon per Indian mobile number across all offers.
-- Server-validated form, explicit contact consent, and real 24-hour application counts.
-- Up to ₹200 discount; administrator can set ₹1–₹200 and validity 1–90 days. Existing coupons retain issue-time discount and expiry. Times are stored as UTC milliseconds and displayed in India time.
-- Gold SVG download embeds the logo when installed. SVG opens in a browser and can be printed or saved as PDF. It is not a photograph or PNG.
-- Share buttons share the **public offer**, never the personal coupon link.
-- Admin: search leads, see expiry and redemption, mark used/unused, edit service prices, create/edit/deactivate offers and export CSV. Deactivate offers rather than deleting historical records.
+## Original logo and photos
 
-Confirm eligible services and final offer terms before advertising. Starter copy is a proposal, not a verified price list. Coupon claims do not reserve appointments.
+The inline images in the chat were visible for reference, but their original files were not exposed to the execution workspace. A typographic brand fallback is shown until the actual image is installed; it is not a recreation of the original logo.
+
+In `/admin`, use **Salon logo → Upload logo** to upload the original PNG, JPG or WebP directly (maximum 5 MB / 16 megapixels). It requires admin authentication and CSRF protection. Original image bytes are retained in SQLite. A display copy removes white outer margins and preserves aspect ratio. The logo appears in the header, footer, Link Page, coupon page and PNG downloads immediately. Uploaded originals are not publicly served.
+
+Alternatively, place the original at `public/brand/logo.png` (`webp`, `jpg` and `jpeg` are also accepted). An uploaded logo takes precedence. Optional original salon photos go in `public/brand/` as `exterior-night`, `exterior-day`, and `interior`, with those same extensions. Photo sections appear only when files are available. No stock photos are presented as this salon.
+
+For optional music, put a licensed track at `public/music/song.mp3` and set `MUSIC_TITLE`. Playback is opt-in, never autoplayed. No copyrighted recording is bundled.
+
+## Claim and reward flow
+
+1. `/claim` collects full name, Indian mobile number, service, preferred visit date and contact/WhatsApp consent. Invalid submissions retain entered values. The visit date must be a real date from today through the coupon expiry date, using India time.
+2. A successful claim atomically stores the lead, a unique coupon, a cryptographically random integer **₹100–₹150 inclusive**, and the WhatsApp queue entry. Client-submitted discount amounts are ignored. One coupon per mobile; the global 100-claim limit remains transactional.
+3. `/claim/success` reveals the saved amount with a short number animation. The animation cannot choose a different result. Refreshes do not reroll; reduced-motion users and browsers without JavaScript receive the saved result directly. Animation numbers are decorative and not separate awards.
+4. The customer can download an actual **1080 × 1350 PNG** generated server-side by Sharp. The file includes their awarded amount, name, code, expiry, preferred visit date, terms and the installed logo. Sharing uses the public offer URL rather than personal coupon links.
+
+The Link Page highlights welcome promotions up to ₹200 as requested, while prominently stating this spin awards ₹100–₹150. Existing coupons retain their original discount, expiry, redemption state and legacy timeframe. New coupons expire at the end of the validity date in India time. Admin validity settings apply to future claims; random award bounds are fixed at ₹100–₹150.
+
+Admin records include the preferred visit date, actual award, claim timestamp (displayed in IST), expiry and WhatsApp request status. CSV export includes UTC ISO timestamps and the preferred visit date. Existing search, redemption, offer management and service-price controls remain available. Claiming a coupon does not confirm an appointment.
+
+Database schema upgrades are additive and idempotent; the database is never reset. `npm test` covers new and legacy data, invalid dates, award bounds, tampering, duplicate claims, cap, PNG output, admin access, logo upload, exports, restart persistence and WhatsApp queue behavior. Test servers explicitly disable live WhatsApp sending.
 
 ## Meta Pixel
 
@@ -47,7 +60,7 @@ Rate limits are in-process and appropriate to one server; multi-server deploymen
 
 ## Automatic WhatsApp coupon confirmations
 
-The lead form now explicitly asks for consent to a WhatsApp confirmation. A successful claim records a message in SQLite **in the same transaction as the coupon**. A background worker sends it using Meta's official WhatsApp Cloud API without delaying the form response. Previously collected leads are not backfilled or contacted automatically. No WhatsApp marketing campaigns are added.
+The lead form now explicitly asks for consent to a WhatsApp confirmation. A successful claim records a message in SQLite **in the same transaction as the coupon**. The existing background worker sends the actual stored award in template parameter 3 and sends it using Meta's official WhatsApp Cloud API without delaying the form response. Previously collected leads are not backfilled or contacted automatically. No WhatsApp marketing campaigns are added.
 
 Configure these together in secure hosting environment settings or the ignored `.env` file:
 
@@ -58,9 +71,9 @@ Configure these together in secure hosting environment settings or the ignored `
 - `WHATSAPP_API_VERSION`: a supported Graph API version; defaults to `v23.0`.
 - `PUBLIC_BASE_URL`: the real HTTPS website origin, without a path, query or credentials.
 
-Create an approved template with **five positional body text parameters**, in this order: customer name, coupon code, maximum discount as a number, expiry date, complete private coupon URL. Example body:
+Create an approved template with **five positional body text parameters**, in this order: customer name, coupon code, stored discount amount as a number, expiry date, complete private coupon URL. Example body:
 
-> Hello {{1}}, your Raju Riyaz Unisex Salon coupon is ready! Code: {{2}}. Get up to ₹{{3}} off eligible services. Valid until {{4}}. View and download: {{5}}. Visit Daccapatty, Nagaon or call 9126691868. Single use. Terms and conditions apply.
+> Hello {{1}}, your Raju Reyaz Unisex Salon coupon is ready! Code: {{2}}. Your coupon is worth ₹{{3}} off eligible services. Valid until {{4}}. View and download: {{5}}. Visit Daccapatty, Nagaon or call 9126691868. Single use. Terms and conditions apply.
 
 Use the category required by Meta for this promotional coupon content (normally marketing); obtain approval rather than assuming a utility classification. This implementation expects a body-only template with no required header or button parameters. Website submissions do not open a WhatsApp conversation window, so an approved template is required for the first business-initiated message. In Meta's test environment, recipients must be added/verified as test recipients; production needs an enabled sender and the necessary account setup.
 

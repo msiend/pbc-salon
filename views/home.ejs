@@ -1,35 +1,10 @@
 <%- include('header') %>
-<div class="announcement"><span>RAJU RIYAZ UNISEX SALON</span><span class="announcement-divider">✦</span><strong>OPENING ON 16 OCTOBER</strong><span class="announcement-location">Daccapatty, Nagaon</span></div>
-<section class="hero">
-  <div class="hero-copy">
-    <div class="eyebrow">A NEW LOOK. A NEW BEAUTY ADDRESS.</div>
-    <h1>Your next look.<br><em>Starts here.</em></h1>
-    <p>Meet Raju Riyaz Unisex Salon. Hair, beauty and grooming for every version of you — right here in Daccapatty.</p>
-    <div class="actions"><a class="button" href="/claim">Get up to ₹<%= settings.discount %> off →</a><a class="button outline" href="tel:+919126691868" data-contact>Call the salon</a></div>
-    <div class="hero-detail"><span>FOR HER & HIM</span><span>FIRST 100 CUSTOMERS</span></div>
-  </div>
-  <div class="hero-visual <%= hero?'has-photo':'' %>">
-    <% if(hero){ %>
-      <img class="salon-hero-photo" src="<%= hero %>" width="900" height="720" alt="Raju Riyaz Unisex Salon exterior at night" fetchpriority="high">
-      <div class="photo-caption"><span>YOUR NEW SALON IN NAGAON</span><strong>See you at Raju Riyaz.</strong></div>
-    <% }else{ %>
-      <div class="opening-poster">
-        <div class="poster-top"><span>HAIR · BEAUTY · GROOMING</span><span>NAGAON, ASSAM</span></div>
-        <div class="poster-main"><span class="poster-flourish" aria-hidden="true">✦</span><p>Something<br><em>beautiful</em><br>is coming.</p></div>
-        <div class="poster-bottom"><strong>RAJU RIYAZ</strong><span>UNISEX SALON</span><div>16 OCTOBER <span>·</span> DACCAPATTY</div></div>
-      </div>
-    <% } %>
-    <div class="hero-coupon-tag"><span>YOUR WELCOME GIFT</span><strong>₹<%= settings.discount %> <small>OFF*</small></strong><a href="/claim">Claim your coupon →</a></div>
-  </div>
+<section class="hero section">
+ <div class="hero-copy"><span class="eyebrow"><span class="dot"></span> YOUR BEAUTY ADDRESS IN NAGAON</span><h1>A fresh look.<br>A little <em>you time.</em></h1><p>Hair, beauty, makeup and grooming — all in one welcoming space. Find your next look at Raju Reyaz.</p><div class="actions"><a class="button" href="/claim">Claim your welcome offer <%- include('icon',{name:'arrow'}) %></a><a class="text-link" href="/#services">Explore services</a></div><div class="hero-details"><span><%- include('icon',{name:'check'}) %> For women & men</span><span><%- include('icon',{name:'map'}) %> Daccapatty, Nagaon</span></div></div>
+ <div class="hero-feature"><% if(hero){ %><img class="hero-photo" src="<%= hero %>" width="800" height="720" alt="Raju Reyaz salon exterior" fetchpriority="high"><% }else{ %><div class="feature-top"><span>YOUR FIRST VISIT,<br>A LITTLE MORE SPECIAL.</span><%- include('icon',{name:'sparkle'}) %></div><div class="feature-number">Good looks.<br><span>Golden perks.</span></div><p>A welcome gift is waiting for you.</p><% } %><a class="hero-ticket" href="/claim"><div><span>WELCOME OFFERS UP TO</span><strong>₹200 <small>OFF</small></strong></div><span class="round-arrow"><%- include('icon',{name:'arrow'}) %></span></a><div class="feature-foot">This spin awards ₹100–₹150 · Terms apply</div></div>
 </section>
-<div class="welcome-strip"><span><b>01</b> Choose your service</span><span><b>02</b> Claim your golden coupon</span><span><b>03</b> Visit & enjoy your new look</span></div>
-<% if(day||interior){ %>
-<section class="section salon-gallery"><div class="section-heading"><div><div class="eyebrow">A PEEK AT WHAT’S COMING</div><h2>Your new <em>salon destination.</em></h2></div><p>A new space for your next look.</p></div><div class="gallery-grid">
-  <% if(day){ %><figure><img src="<%= day %>" width="900" height="600" loading="lazy" alt="Daytime view of the salon exterior"><figcaption>RAJU RIYAZ · EXTERIOR DAY VIEW</figcaption></figure><% } %>
-  <% if(interior){ %><figure><img src="<%= interior %>" width="900" height="600" loading="lazy" alt="Salon interior during preparation"><figcaption>BEHIND THE SCENES · OUR SPACE TAKING SHAPE</figcaption></figure><% } %>
-</div></section>
-<% } %>
-<section id="services" class="section"><div class="section-heading"><div><div class="eyebrow">FOR EVERY DAY. FOR YOUR BIG DAYS.</div><h2>Find your <em>kind of care.</em></h2></div><a class="text-link" href="/claim">Claim a service coupon →</a></div><div class="service-grid"><% services.forEach((s,i)=>{ %><article class="service-card"><span class="card-number">0<%= i+1 %></span><div class="service-icon" aria-hidden="true"><%- include('service-icon',{index:i%6}) %></div><h3><%= s.name %></h3><p><%= s.description %></p><div class="card-bottom"><span><%= s.price===null?'Ask us for pricing':'From ₹'+s.price %></span><a href="/claim" aria-label="Claim a coupon for <%= s.name %>">→</a></div></article><% }); %></div></section>
-<section class="offer-banner"><div><div class="eyebrow">LIMITED WELCOME OFFER</div><h2>A golden excuse<br>to <em>treat yourself.</em></h2><p>Up to ₹<%= settings.discount %> off an eligible service. First 100 customers only.</p><div class="actions"><a href="/claim" class="button">Get my coupon →</a><a href="/offers" class="text-link">View all offers</a></div><small>*One welcome coupon per mobile number. Expiry and terms apply.</small></div><div class="mini-coupon"><span>RAJU RIYAZ · UNISEX SALON</span><div>For your next look.</div><strong>₹<%= settings.discount %></strong><p>MAXIMUM DISCOUNT</p><span>YOUR PERSONAL GOLDEN COUPON</span></div></section>
-<section class="visit section"><div><div class="eyebrow">LET’S PLAN YOUR VISIT</div><h2>Right here in <em>Nagaon.</em></h2><p>Daccapatty, Nagaon<br>Call us for services, prices and appointments.</p></div><div class="visit-card"><a href="tel:+919126691868" class="contact-link" data-contact>+91 91266 91868 →</a><div class="actions"><a class="button outline" href="https://www.google.com/maps/search/?api=1&query=Raju+Riyaz+Unisex+Salon+Daccapatty+Nagaon" target="_blank" rel="noopener">Directions →</a><a class="button" href="https://wa.me/919126691868" data-contact>WhatsApp us</a></div></div></section>
+<div class="service-ribbon"><span>HAIR</span><i>✦</i><span>BEAUTY</span><i>✦</i><span>MAKEUP</span><i>✦</i><span>GROOMING</span></div>
+<section id="services" class="section"><div class="section-heading"><div><span class="eyebrow">MADE FOR YOUR KIND OF SELF-CARE</span><h2>What brings <em>you in?</em></h2></div><p>Everyday essentials.<br>A little something special.</p></div><div class="service-grid"><% services.forEach((s,i)=>{ %><a class="service-card" href="/claim?service=<%= encodeURIComponent(s.name) %>"><span class="service-icon"><%- include('service-icon',{index:i%6}) %></span><h3><%= s.name %></h3><p><%= s.description %></p><span class="service-bottom"><span><%= s.price===null?'Ask us for pricing':'From ₹'+s.price %></span><%- include('icon',{name:'arrow'}) %></span></a><% }); %></div></section>
+<% if(day||interior){ %><section class="section gallery"><div class="section-heading"><div><span class="eyebrow">WELCOME TO OUR SPACE</span><h2>Take a <em>closer look.</em></h2></div></div><div class="gallery-grid"><% if(day){ %><figure><img src="<%= day %>" alt="Daytime exterior of Raju Reyaz salon" width="800" height="600" loading="lazy"><figcaption>Your new salon in Daccapatty</figcaption></figure><% } %><% if(interior){ %><figure><img src="<%= interior %>" alt="Salon interior during preparation" width="800" height="600" loading="lazy"><figcaption>Our space taking shape</figcaption></figure><% } %></div></section><% } %>
+<section class="section"><div class="visit-banner"><div><span class="eyebrow">LET’S MAKE IT A GOOD HAIR DAY</span><h2>See you at <em>Raju Reyaz.</em></h2><p>1st Floor, Haque Market, Daccapatty, Nagaon, Assam</p></div><div class="actions"><a class="button" href="https://maps.app.goo.gl/PR8L21y1T2sjEwi59"><%- include('icon',{name:'map'}) %> Get directions</a><a class="button outline" href="tel:+919126691868" data-contact><%- include('icon',{name:'phone'}) %> Call us</a></div></div></section>
 <%- include('footer') %>

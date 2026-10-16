@@ -1,13 +1,33 @@
 const toast=message=>{const el=document.querySelector('#toast');el.textContent=message;el.hidden=false;setTimeout(()=>el.hidden=true,4000);};
 document.querySelectorAll('[data-share]').forEach(button=>button.addEventListener('click',async()=>{
  const path=button.dataset.url||(location.pathname.startsWith('/coupon/')||location.pathname==='/claim/success'?'/claim':location.pathname);
- const data={title:'Raju Riyaz Unisex Salon',text:'A fresh look. A little luxury. Discover our salon offers in Nagaon.',url:new URL(path,location.origin).href};
+ const data={title:'Raju Reyaz Unisex Salon',text:'A fresh look. A little luxury. Discover our salon offers in Nagaon.',url:new URL(path,location.origin).href};
  try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(data.url);toast('Offer link copied. Share it with a friend.');}}catch(e){if(e.name!=='AbortError')toast('Share this link: '+data.url);}
 }));
 const audio=document.querySelector('#music-audio'),toggle=document.querySelector('#music-toggle');
 if(audio){toggle.addEventListener('click',async()=>{try{if(audio.paused){await audio.play();toggle.textContent='Pause';toggle.setAttribute('aria-label','Pause music');}else{audio.pause();toggle.textContent='Play';toggle.setAttribute('aria-label','Play music');}}catch{toast('The music could not be played. Please try again.');}});audio.addEventListener('ended',()=>{toggle.textContent='Play';toggle.setAttribute('aria-label','Play music');});}
 const leadForm=document.querySelector('#lead-form');
-leadForm?.addEventListener('submit',()=>{const button=leadForm.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Creating your coupon…';});
+leadForm?.addEventListener('submit',()=>{const button=leadForm.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Saving your details…';});
+// The server has already saved the award. This animation only reveals it.
+const resultPage=document.querySelector('[data-new-spin="yes"]');
+if(resultPage && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+ const stage=document.querySelector('#spin-stage'),result=document.querySelector('#coupon-result'),number=document.querySelector('#spin-number');
+ const key='salon-revealed-'+document.querySelector('.coupon-code').textContent.trim();let seen=false;
+ try{seen=sessionStorage.getItem(key)==='yes';}catch{}
+ if(!seen){
+  stage.hidden=false;result.hidden=true;let ticks=0;
+  const animation=setInterval(()=>{number.textContent=String(100+(ticks*13)%51);ticks++;},75);
+  setTimeout(()=>{clearInterval(animation);number.textContent=resultPage.dataset.spinValue;stage.classList.add('settled');},1800);
+  setTimeout(()=>{stage.hidden=true;result.hidden=false;try{sessionStorage.setItem(key,'yes');}catch{}const title=result.querySelector('h1');title.tabIndex=-1;title.focus({preventScroll:true});},2300);
+ }
+}
+const upload=document.querySelector('#logo-upload');
+upload?.addEventListener('submit',async event=>{
+ event.preventDefault();const file=upload.elements.logo.files[0],status=document.querySelector('#logo-upload-status'),button=upload.querySelector('button');
+ if(!file||file.size>5*1024*1024){status.textContent='Choose an image smaller than 5 MB.';return;}
+ button.disabled=true;status.textContent='Uploading…';
+ try{const response=await fetch('/admin/logo',{method:'POST',headers:{'Content-Type':file.type,'X-CSRF-Token':upload.elements.csrf.value},body:file});const data=await response.json();if(!response.ok)throw Error(data.error||'Upload failed.');location.reload();}catch(e){status.textContent=e.message;button.disabled=false;}
+});
 const pixel=document.body.dataset.pixel,banner=document.querySelector('#cookie-consent');
 let loaded=false;
 const readChoice=()=>{try{return localStorage.getItem('salon-marketing');}catch{return null;}};

@@ -1,36 +1,14 @@
 <%- include('header') %>
-<section class="section claim-layout">
-  <div class="claim-intro">
-    <a class="back-link" href="/">← Back to salon</a>
-    <div class="eyebrow">THE RAJU RIYAZ WELCOME OFFER</div>
-    <h1>Your look.<br> <em>Your golden perk.</em></h1>
-    <p>Claim up to <strong>₹<%= settings.discount %> off</strong> your visit to Raju Riyaz Unisex Salon.</p>
-    <div class="claim-ticket" aria-hidden="true"><span>YOUR WELCOME COUPON</span><strong>₹<%= settings.discount %><em>OFF</em></strong><div>RAJU RIYAZ <span>·</span> UNISEX SALON</div></div>
-    <ul class="benefits"><li>Valid for <%= settings.validity %> days</li><li>First 100 customers</li><li>Download & keep</li></ul>
-    <div class="real-stats"><span class="dot"></span><strong><%= stats.recent %> <%= stats.recent===1?'person has':'people have' %></strong> applied in the last 24 hours.<small><%= stats.total %> of 100 coupons claimed · Actual applications</small></div>
-    <p class="claim-contact">Daccapatty, Nagaon · <a href="tel:+919126691868" data-contact>9126691868</a></p>
-  </div>
-  <div class="form-card compact-form">
-    <div class="form-heading"><span class="form-badge" aria-hidden="true">✦</span><div><h2>Claim your coupon</h2><p>A few details. A golden little treat.</p></div></div>
-    <% if(error){ %><p class="error" role="alert"><%= error %></p><% } %>
-    <% if(stats.total>=100||!offers.length){ %><p>The current coupon allocation is closed. Call <a href="tel:+919126691868">9126691868</a> for available promotions.</p><% }else{ %>
-    <form method="post" action="/claim" id="lead-form">
-      <input type="hidden" name="csrf" value="<%= csrf %>">
-      <div class="form-grid">
-        <label>Your name <span>*</span><input name="name" autocomplete="name" required minlength="2" maxlength="80" placeholder="Full name"></label>
-        <label>Mobile number <span>*</span><div class="mobile-input"><b>+91</b><input type="tel" name="mobile" autocomplete="tel-national" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" required placeholder="10-digit number"></div></label>
-        <label>Service <span>*</span><select name="service" required><option value="">Select</option><% services.forEach(s=>{ %><option><%= s.name %></option><% }); %></select></label>
-        <label>Visit within <span>*</span><select name="timeframe" required><option value="">Select</option><option value="5">Within 5 days</option><option value="7">Within 7 days</option><option value="10">Within 10 days</option></select></label>
-      </div>
-      <% if(offers.length===1){ %><input type="hidden" name="offer" value="<%= offers[0].id %>"><% }else{ %>
-      <label>Your offer<select name="offer" required><% offers.forEach(o=>{ %><option value="<%= o.id %>" <%= o.id===selected?'selected':'' %>><%= o.title %></option><% }); %></select></label>
-      <% } %>
-      <label class="checkbox"><input type="checkbox" name="consent" value="yes" required><span>I agree to the <a href="/privacy">terms & privacy policy</a> and consent to a WhatsApp coupon confirmation and contact about my visit from Raju Riyaz Unisex Salon.</span></label>
-      <button class="button wide" type="submit">Generate my golden coupon →</button>
-      <small class="form-note">Up to ₹<%= settings.discount %> off · Expires in <%= settings.validity %> days · Single use</small>
-    </form>
-    <details class="form-terms"><summary>Coupon terms</summary><p>One welcome coupon per mobile number. Eligible services only. Discount cannot exceed the bill. No cash value. Cannot be combined with other offers. Claiming a coupon does not reserve an appointment.</p></details>
-    <% } %>
-  </div>
-</section>
-<%- include('footer') %>
+<section class="section claim-layout"><div class="claim-intro"><a class="back-link" href="/links">← Back to our links</a><span class="eyebrow">A LITTLE TREAT FROM RAJU REYAZ</span><h1>Your next visit.<br> <em>A golden little perk.</em></h1><p>Tell us a little about your visit. Then spin to reveal a discount that’s yours to keep.</p><div class="prize-preview"><span class="preview-label"><%- include('icon',{name:'gift'}) %> YOUR WELCOME REWARD</span><div><span>₹100</span><i>—</i><span>₹150</span></div><p>off an eligible salon service</p><span class="ticket-rule"></span><small>One claim. One surprise. All yours.</small></div><div class="claim-steps"><span><b>1</b> Fill in your details</span><span><b>2</b> Reveal your reward</span><span><b>3</b> Download & visit</span></div><p class="real-stats"><span class="dot"></span><strong><%= stats.recent %> <%= stats.recent===1?'person has':'people have' %></strong> applied in the last 24 hours.<small><%= stats.total %> of 100 welcome coupons claimed</small></p></div>
+<div class="form-card compact-form"><div class="form-heading"><span class="form-icon"><%- include('icon',{name:'sparkle'}) %></span><div><h2>Claim your offer</h2><p>Your good-look moment starts here.</p></div></div>
+<% if(error){ %><p class="error" role="alert"><%= error %></p><% } %>
+<% if(stats.total>=100||!offers.length){ %><div class="closed-offer"><h3>That’s all for this offer.</h3><p>Call <a href="tel:+919126691868">9126691868</a> to discover our current promotions.</p></div><% }else{ %>
+<form method="post" action="/claim" id="lead-form"><input type="hidden" name="csrf" value="<%= csrf %>"><div class="form-grid">
+<label>Full Name <span>*</span><input name="name" autocomplete="name" required minlength="2" maxlength="80" placeholder="Your full name" value="<%= values.name||'' %>"></label>
+<label>Mobile Number <span>*</span><div class="mobile-input"><span>+91</span><input type="tel" name="mobile" autocomplete="tel-national" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" required placeholder="10-digit number" value="<%= values.mobile||'' %>"></div></label>
+<label>Choose a Service <span>*</span><select name="service" required><option value="">Select service</option><% services.forEach(s=>{ %><option <%= values.service===s.name?'selected':'' %>><%= s.name %></option><% }); %></select></label>
+<label>Preferred Visit Date <span>*</span><input type="date" name="preferred_visit_date" min="<%= today %>" max="<%= maxVisitDate %>" required value="<%= values.preferred_visit_date||'' %>"></label>
+</div><% if(offers.length===1){ %><input type="hidden" name="offer" value="<%= offers[0].id %>"><% }else{ %><label>Select your offer<select name="offer" required><% offers.forEach(o=>{ %><option value="<%= o.id %>" <%= o.id===selected?'selected':'' %>><%= o.title %></option><% }); %></select></label><% } %>
+<label class="checkbox"><input type="checkbox" name="consent" value="yes" required <%= values.consent==='yes'?'checked':'' %>><span>I agree to the <a href="/privacy">terms & privacy policy</a> and consent to a WhatsApp coupon confirmation and contact about my visit from Raju Reyaz.</span></label>
+<button class="button wide" type="submit">Claim Offer <%- include('icon',{name:'arrow'}) %></button><p class="form-note"><%- include('icon',{name:'check'}) %> One coupon per mobile · Valid for <%= settings.validity %> days</p></form><details class="form-terms"><summary>How does the offer work?</summary><p>Your discount is randomly selected between ₹100 and ₹150, inclusive, once your details are accepted. Download your coupon and present it at the salon. No cash value; discount cannot exceed your bill or be combined with other offers. A preferred date is not a confirmed appointment.</p></details><% } %>
+</div></section><%- include('footer') %>

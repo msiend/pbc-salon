@@ -1,8 +1,1 @@
-<%- include('header') %>
-<section class="section offers-page">
-  <div class="page-title"><div class="eyebrow">RAJU RIYAZ · SALON SPECIALS</div><h1>A little more<br>for <em>your next look.</em></h1><p>Pick an offer. Claim your coupon. Plan your visit.</p></div>
-  <div class="offers-grid"><% offers.forEach(o=>{ %>
-    <article class="offer-card"><div class="eyebrow">LIMITED WELCOME OFFER</div><h2><%= o.title %></h2><p><%= o.description %></p><div class="actions"><a class="button" href="/claim?offer=<%= o.id %>">Claim this offer →</a><button class="text-button" data-share data-url="/claim?offer=<%= o.id %>">Share with a friend →</button></div><small>First 100 customers across coupon offers. Maximum discount ₹200. Terms apply.</small></article>
-  <% }); %><% if(!offers.length){ %><p>New offers are on their way. Call us for the latest.</p><% } %></div>
-</section>
-<%- include('footer') %>
+<%- include('header') %><section class="section offers-page"><div class="page-title"><span class="eyebrow">A LITTLE EXTRA, JUST FOR YOU</span><h1>More reasons<br>to <em>treat yourself.</em></h1><p>Choose an offer and make your next visit a little more special.</p></div><div class="offers-grid"><% offers.forEach(o=>{ %><article class="offer-card"><span class="offer-icon"><%- include('icon',{name:'gift'}) %></span><span class="eyebrow">LIMITED WELCOME OFFER</span><h2><%= o.title %></h2><p><%= o.description %></p><p class="offer-detail">This spin reveals a reward between ₹100 and ₹150.</p><div class="actions"><a class="button" href="/claim?offer=<%= o.id %>">Claim Offer <%- include('icon',{name:'arrow'}) %></a><button class="text-button" data-share data-url="/claim?offer=<%= o.id %>">Share offer</button></div><small>First 100 customers across welcome offers · Single use · Terms apply</small></article><% }); %><% if(!offers.length){ %><p>New offers are on their way. Call us for the latest.</p><% } %></div></section><%- include('footer') %>
